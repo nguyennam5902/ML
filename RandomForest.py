@@ -42,7 +42,7 @@ def main():
         dataset["ProcessedText"],
         dataset["Label"].values,
         test_size=0.2,
-        random_state=45,
+        random_state=98,
         stratify=dataset["Label"])
 
     print("Train Set Class Distribution:",
