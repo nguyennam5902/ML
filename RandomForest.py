@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
@@ -45,14 +45,12 @@ def main():
         random_state=45,
         stratify=dataset["Label"])
 
-    # Display class distribution in train and test sets
     print("Train Set Class Distribution:",
           np.sum(y_train == "ham") / np.sum(y_train == "spam"))
     print("Test Set Class Distribution:",
           np.sum(y_test == "ham") / np.sum(y_test == "spam"))
-    print("TEST PROCESING:\n", process_text(dataset["EmailText"].tolist()[2]))
+    # print("TEST PROCESING:\n", process_text(dataset["EmailText"].tolist()[2]))
 
-    # TF-IDF Vectorization and Random Forest Classifier in a Pipeline
     pipeline = Pipeline([('tfidf',
                           TfidfVectorizer(min_df=5,
                                           max_df=0.75,
@@ -63,15 +61,37 @@ def main():
                                                  n_estimators=150,
                                                  random_state=42))])
 
-    # Fit the pipeline on the training data
     pipeline.fit(X_train, y_train)
 
-    # Get the number of features
     num_features = len(pipeline.named_steps['tfidf'].get_feature_names_out())
     print("Number of Features:", num_features)
 
-    # Model Evaluation
+    # vocabulary_mapping = pipeline.named_steps['tfidf'].vocabulary_
+    # sorted_vocabulary = sorted(vocabulary_mapping.items(), key=lambda x: x[1])
+
+    # for word, index in sorted_vocabulary:
+    #     print(f"Index: {index}, Word: {word}")
+
     y_pred = pipeline.predict(X_test)
+
+    print("Test Set Class Distribution:", np.sum(y_test == "ham"), '/',
+          np.sum(y_test == "spam"))
+    cm = confusion_matrix(y_test, y_pred)
+    print("Confusion Matrix:")
+    print(cm)
+
+    false_positive_indices = np.where((y_test == 'spam') & (y_pred == 'ham'))[0]
+
+    print("\nMessages Falsely Classified as Ham (Actually Spam):\n")
+    for index in false_positive_indices:
+        print(f"True Label: {y_test[index]}, Predicted Label: {y_pred[index]}, Message: {X_test.iloc[index]}")
+
+    true_negative_indices = np.where((y_test == 'ham') & (y_pred == 'spam'))[0]
+
+    print("\nMessages Falsely Classified as Spam (Actually Ham):\n")
+    for index in true_negative_indices:
+        print(f"True Label: {y_test[index]}, Predicted Label: {y_pred[index]}, Message: {X_test.iloc[index]}")
+
     accuracy = accuracy_score(y_test, y_pred)
     print("Test Set Accuracy:", accuracy)
 
@@ -82,6 +102,8 @@ def main():
 
         processed_msg = process_text(msg)
         print("PROCESSED:\n", processed_msg)
+        print("TF-IDF:\n",
+              pipeline.named_steps['tfidf'].transform([processed_msg]))
         real_time = [processed_msg]
         prediction = pipeline.predict(real_time)
 
