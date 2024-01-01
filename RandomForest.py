@@ -16,7 +16,12 @@ def load_dataset(file_path):
     return dataset
 
 
-def process_text(text):
+def process_text(text: str):
+    text = text.lower().replace('åÕ', "").replace('‰ûò', ' ').replace(
+        'ì_', ' ').replace('å£', " £").replace('ìï', " ").replace(
+            '‰û_', " ").replace('åè', " ").replace('‰ûï', " ").replace(
+                'åð', " ").replace('ìä', " ").replace('åô', " ").replace(
+                    'åò', " ").replace('‰ûª', " ")
     text = re.sub('\b[\w\-.]+?@\w+?\.\w{2,4}\b', 'emailaddr', text)
     text = re.sub('(http[s]?\S+)|(\w+\.[A-Za-z]{2,4}\S*)', 'httpaddr', text)
     text = re.sub('£|\$', 'moneysymb', text)
@@ -26,8 +31,6 @@ def process_text(text):
     text = re.sub('\d+(\.\d+)?', 'numbr', text)
 
     text = re.sub('[^\w\d\s]', ' ', text)
-
-    text = text.lower()
 
     text = text.split()
     return ' '.join(text)
@@ -51,15 +54,15 @@ def main():
           np.sum(y_test == "ham") / np.sum(y_test == "spam"))
     # print("TEST PROCESING:\n", process_text(dataset["EmailText"].tolist()[2]))
 
-    pipeline = Pipeline([('tfidf',
-                          TfidfVectorizer(min_df=5,
-                                          max_df=0.75,
-                                          preprocessor=None,
-                                          max_features=1000)),
-                         ('rf',
-                          RandomForestClassifier(max_depth=None,
-                                                 n_estimators=150,
-                                                 random_state=42))])
+    pipeline = Pipeline([
+        ('tfidf',
+         TfidfVectorizer(max_features=1000,
+                         stop_words=stopwords.words('english'))),
+        ('rf',
+         RandomForestClassifier(max_depth=None,
+                                n_estimators=150,
+                                random_state=42))
+    ])
 
     pipeline.fit(X_train, y_train)
 
@@ -80,17 +83,22 @@ def main():
     print("Confusion Matrix:")
     print(cm)
 
-    false_positive_indices = np.where((y_test == 'spam') & (y_pred == 'ham'))[0]
+    false_positive_indices = np.where((y_test == 'spam')
+                                      & (y_pred == 'ham'))[0]
 
     print("\nMessages Falsely Classified as Ham (Actually Spam):\n")
     for index in false_positive_indices:
-        print(f"True Label: {y_test[index]}, Predicted Label: {y_pred[index]}, Message: {X_test.iloc[index]}")
+        print(
+            f"True Label: {y_test[index]}, Predicted Label: {y_pred[index]}, Message: {X_test.iloc[index]}"
+        )
 
     true_negative_indices = np.where((y_test == 'ham') & (y_pred == 'spam'))[0]
 
     print("\nMessages Falsely Classified as Spam (Actually Ham):\n")
     for index in true_negative_indices:
-        print(f"True Label: {y_test[index]}, Predicted Label: {y_pred[index]}, Message: {X_test.iloc[index]}")
+        print(
+            f"True Label: {y_test[index]}, Predicted Label: {y_pred[index]}, Message: {X_test.iloc[index]}"
+        )
 
     accuracy = accuracy_score(y_test, y_pred)
     print("Test Set Accuracy:", accuracy)
