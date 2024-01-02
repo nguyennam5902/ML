@@ -5,9 +5,134 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
+from sklearn.tree import plot_tree
+from sklearn.metrics import classification_report
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import Pipeline
+import re
+from nltk.corpus import stopwords
 import string
 import re
 from nltk.corpus import stopwords
+from sklearn.metrics import precision_recall_fscore_support
+import nltk
+
+nltk.download('stopwords')
+
+
+def visual_Distribution(y_train, y_test):
+    # Tính toán tỷ lệ phân bố của nhãn trong X_train và X_test
+    train_labels = pd.Series(y_train)
+    test_labels = pd.Series(y_test)
+
+    train_label_counts = train_labels.value_counts(normalize=True)
+    test_label_counts = test_labels.value_counts(normalize=True)
+
+    # Vẽ biểu đồ hình tròn
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+    ax1.pie(train_label_counts,
+            labels=train_label_counts.index,
+            autopct='%1.1f%%',
+            startangle=90)
+    ax1.set_title('Train Data Label Distribution')
+
+    ax2.pie(test_label_counts,
+            labels=test_label_counts.index,
+            autopct='%1.1f%%',
+            startangle=90)
+    ax2.set_title('Test Data Label Distribution')
+
+    plt.show()
+
+
+def evaluate_and_plot_classification_performance(y_true, y_pred, classes):
+    # Ma trận nhầm lẫn
+    cm = confusion_matrix(y_true, y_pred)
+    print("Confusion Matrix:")
+    print(cm)
+
+    # Đánh giá chi tiết: precision, recall, F1-score
+    #F1-score = 2*(precision * recall)/precision + recall
+    #   => là một số đo kết hợp giữa precision và recall
+
+    precision, recall, f1_score, _ = precision_recall_fscore_support(
+        y_true, y_pred)
+
+    print("Classification Report:")
+    for i, cls in enumerate(classes):
+        print(
+            f"Class: {cls}, Precision: {precision[i]}, Recall: {recall[i]}, F1-score: {f1_score[i]}"
+        )
+
+    # Độ chính xác
+    accuracy = accuracy_score(y_true, y_pred)
+    print(f"Accuracy: {accuracy}")
+
+    # Biểu đồ cột cho precision, recall, F1-score
+    plt.figure(figsize=(8, 5))
+
+    bar_width = 0.2
+    index = np.arange(len(classes))
+
+    plt.bar(index,
+            precision,
+            bar_width,
+            color='blue',
+            alpha=0.7,
+            label='Precision')
+    plt.bar(index + bar_width,
+            recall,
+            bar_width,
+            color='green',
+            alpha=0.7,
+            label='Recall')
+    plt.bar(index + 2 * bar_width,
+            f1_score,
+            bar_width,
+            color='orange',
+            alpha=0.7,
+            label='F1-score')
+
+    plt.xlabel('Classes')
+    plt.ylabel('Scores')
+    plt.title('Precision, Recall, and F1-score for Each Class')
+    plt.xticks(index + bar_width, classes)
+    plt.legend()
+    plt.show()
+
+
+def evaluate_classification_performance(y_true, y_pred):
+    # Ma trận nhầm lẫn
+    cm = confusion_matrix(y_true, y_pred)
+    print("Confusion Matrix:")
+    print(cm)
+
+    # Đánh giá chi tiết: precision, recall, F1-score
+    report = classification_report(y_true, y_pred)
+    print("Classification Report:")
+    print(report)
+
+    # Độ chính xác
+    accuracy = accuracy_score(y_true, y_pred)
+    print(f"Accuracy: {accuracy}")
+
+
+def visual_tree(pipeline):
+    # Sau khi huấn luyện mô hình Random Forest và vẽ biểu đồ cây đầu tiên
+
+    plt.figure(figsize=(20, 10))
+    plot_tree(
+        pipeline.named_steps['rf'].estimators_[0],
+        filled=True,
+        feature_names=pipeline.named_steps['tfidf'].get_feature_names_out())
+    plt.show()
 
 
 def load_dataset(file_path):
@@ -102,6 +227,11 @@ def main():
 
     accuracy = accuracy_score(y_test, y_pred)
     print("Test Set Accuracy:", accuracy)
+
+    visual_Distribution(y_train, y_test)
+    evaluate_and_plot_classification_performance(y_test, y_pred, ['ham', 'spam'])
+    evaluate_classification_performance(y_test, y_pred)
+    visual_tree(pipeline)
 
     while True:
         msg = input("Input your message:\n")
